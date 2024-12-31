@@ -755,12 +755,12 @@ async fn geyser_subscribe(
                     continue;
                 }
 
-                let filters = msg.filters;
-                let created_at: SystemTime = msg
-                    .created_at
-                    .ok_or(anyhow::anyhow!("no created_at in the message"))?
-                    .try_into()
-                    .context("failed to parse created_at")?;
+                // let filters = msg.filters;
+                // let created_at: SystemTime = msg
+                //     .created_at
+                //     .ok_or(anyhow::anyhow!("no created_at in the message"))?
+                //     .try_into()
+                //     .context("failed to parse created_at")?;
                 match msg.update_oneof {
                     Some(UpdateOneof::Account(msg)) => {
                         let account = msg
@@ -769,97 +769,98 @@ async fn geyser_subscribe(
                         let mut value = create_pretty_account(account)?;
                         value["isStartup"] = json!(msg.is_startup);
                         value["slot"] = json!(msg.slot);
-                        print_update("account", created_at, &filters, value);
+                        // print_update("account", created_at, &filters, value);
                     }
                     Some(UpdateOneof::Slot(msg)) => {
                         let status = CommitmentLevel::try_from(msg.status)
                             .context("failed to decode commitment")?;
-                        print_update(
-                            "slot",
-                            created_at,
-                            &filters,
-                            json!({
-                                "slot": msg.slot,
-                                "parent": msg.parent,
-                                "status": status.as_str_name(),
-                                "deadError": msg.dead_error,
-                            }),
-                        );
+                        // print_update(
+                        //     "slot",
+                        //     created_at,
+                        //     &filters,
+                        //     json!({
+                        //         "slot": msg.slot,
+                        //         "parent": msg.parent,
+                        //         "status": status.as_str_name(),
+                        //         "deadError": msg.dead_error,
+                        //     }),
+                        // );
                     }
                     Some(UpdateOneof::Transaction(msg)) => {
                         let tx = msg
                             .transaction
                             .ok_or(anyhow::anyhow!("no transaction in the message"))?;
-                        let mut value = create_pretty_transaction(tx)?;
+                        let mut value = create_pretty_transaction(tx.clone())?;
                         value["slot"] = json!(msg.slot);
-                        print_update("transaction", created_at, &filters, value);
+                        // print_update("transaction", created_at, &filters, value);
+                        print_tx_url(tx.signature);
                     }
                     Some(UpdateOneof::TransactionStatus(msg)) => {
-                        print_update(
-                            "transactionStatus",
-                            created_at,
-                            &filters,
-                            json!({
-                                "slot": msg.slot,
-                                "signature": Signature::try_from(msg.signature.as_slice()).context("invalid signature")?.to_string(),
-                                "isVote": msg.is_vote,
-                                "index": msg.index,
-                                "err": convert_from::create_tx_error(msg.err.as_ref())
-                                    .map_err(|error| anyhow::anyhow!(error))
-                                    .context("invalid error")?,
-                            }),
-                        );
+                        // print_update(
+                        //     "transactionStatus",
+                        //     created_at,
+                        //     &filters,
+                        //     json!({
+                        //         "slot": msg.slot,
+                        //         "signature": Signature::try_from(msg.signature.as_slice()).context("invalid signature")?.to_string(),
+                        //         "isVote": msg.is_vote,
+                        //         "index": msg.index,
+                        //         "err": convert_from::create_tx_error(msg.err.as_ref())
+                        //             .map_err(|error| anyhow::anyhow!(error))
+                        //             .context("invalid error")?,
+                        //     }),
+                        // );
                     }
                     Some(UpdateOneof::Entry(msg)) => {
-                        print_update("entry", created_at, &filters, create_pretty_entry(msg)?);
+                        // print_update("entry", created_at, &filters, create_pretty_entry(msg)?);
                     }
                     Some(UpdateOneof::BlockMeta(msg)) => {
-                        print_update(
-                            "blockmeta",
-                            created_at,
-                            &filters,
-                            json!({
-                                "slot": msg.slot,
-                                "blockhash": msg.blockhash,
-                                "rewards": if let Some(rewards) = msg.rewards {
-                                    Some(convert_from::create_rewards_obj(rewards).map_err(|error| anyhow::anyhow!(error))?)
-                                } else {
-                                    None
-                                },
-                                "blockTime": msg.block_time.map(|obj| obj.timestamp),
-                                "blockHeight": msg.block_height.map(|obj| obj.block_height),
-                                "parentSlot": msg.parent_slot,
-                                "parentBlockhash": msg.parent_blockhash,
-                                "executedTransactionCount": msg.executed_transaction_count,
-                                "entriesCount": msg.entries_count,
-                            }),
-                        );
+                        // print_update(
+                        //     "blockmeta",
+                        //     created_at,
+                        //     &filters,
+                        //     json!({
+                        //         "slot": msg.slot,
+                        //         "blockhash": msg.blockhash,
+                        //         "rewards": if let Some(rewards) = msg.rewards {
+                        //             Some(convert_from::create_rewards_obj(rewards).map_err(|error| anyhow::anyhow!(error))?)
+                        //         } else {
+                        //             None
+                        //         },
+                        //         "blockTime": msg.block_time.map(|obj| obj.timestamp),
+                        //         "blockHeight": msg.block_height.map(|obj| obj.block_height),
+                        //         "parentSlot": msg.parent_slot,
+                        //         "parentBlockhash": msg.parent_blockhash,
+                        //         "executedTransactionCount": msg.executed_transaction_count,
+                        //         "entriesCount": msg.entries_count,
+                        //     }),
+                        // );
                     }
                     Some(UpdateOneof::Block(msg)) => {
-                        print_update(
-                            "block",
-                            created_at,
-                            &filters,
-                            json!({
-                                "slot": msg.slot,
-                                "blockhash": msg.blockhash,
-                                "rewards": if let Some(rewards) = msg.rewards {
-                                    Some(convert_from::create_rewards_obj(rewards).map_err(|error| anyhow::anyhow!(error))?)
-                                } else {
-                                    None
-                                },
-                                "blockTime": msg.block_time.map(|obj| obj.timestamp),
-                                "blockHeight": msg.block_height.map(|obj| obj.block_height),
-                                "parentSlot": msg.parent_slot,
-                                "parentBlockhash": msg.parent_blockhash,
-                                "executedTransactionCount": msg.executed_transaction_count,
-                                "transactions": msg.transactions.into_iter().map(create_pretty_transaction).collect::<Result<Value, _>>()?,
-                                "updatedAccountCount": msg.updated_account_count,
-                                "accounts": msg.accounts.into_iter().map(create_pretty_account).collect::<Result<Value, _>>()?,
-                                "entriesCount": msg.entries_count,
-                                "entries": msg.entries.into_iter().map(create_pretty_entry).collect::<Result<Value, _>>()?,
-                            }),
-                        );
+                        // print_update(
+                        //     "block",
+                        //     created_at,
+                        //     &filters,
+                        //     json!({
+                        //         "slot": msg.slot,
+                        //         "blockhash": msg.blockhash,
+                        //         "rewards": if let Some(rewards) = msg.rewards {
+                        //             Some(convert_from::create_rewards_obj(rewards).map_err(|error| anyhow::anyhow!(error))?)
+                        //         } else {
+                        //             None
+                        //         },
+                        //         "blockTime": msg.block_time.map(|obj| obj.timestamp),
+                        //         "blockHeight": msg.block_height.map(|obj| obj.block_height),
+                        //         "parentSlot": msg.parent_slot,
+                        //         "parentBlockhash": msg.parent_blockhash,
+                        //         "executedTransactionCount": msg.executed_transaction_count,
+                        //         "transactions": msg.transactions.into_iter().map(create_pretty_transaction).collect::<Result<Value, _>>()?,
+                        //         "updatedAccountCount": msg.updated_account_count,
+                        //         "accounts": msg.accounts.into_iter().map(create_pretty_account).collect::<Result<Value, _>>()?,
+                        //         "entriesCount": msg.entries_count,
+                        //         "entries": msg.entries.into_iter().map(create_pretty_entry).collect::<Result<Value, _>>()?,
+                        //     }),
+                        // );
                     }
                     Some(UpdateOneof::Ping(_)) => {
                         // This is necessary to keep load balancers that expect client pings alive. If your load balancer doesn't
@@ -998,4 +999,16 @@ fn print_update(kind: &str, created_at: SystemTime, filters: &[String], value: V
         unix_since.subsec_micros(),
         serde_json::to_string(&value).expect("json serialization failed")
     );
+}
+
+pub fn print_tx_url(signature: Vec<u8>){
+    let signature_str = bs58::encode(signature).into_string();
+
+    // 构建 Solscan 交易链接
+    let local_time = chrono::Local::now().format("%Y-%m-%d-%H-%M-%S").to_string();
+    let url = format!("https://solscan.io/tx/{}?-/{}", signature_str, local_time);
+    println!("Transaction URL: {}", url);
+    // if let Some(tx) = BROADCAST_CHANNEL.get() {
+    //     let _ = tx.send(url);
+    // }
 }
